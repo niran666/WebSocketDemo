@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <el-row style="text-align:center;">
+            <el-input v-model="id" style="width: 200px;" placeholder="请填写注册id"></el-input>
+            <el-button type="primary" @click="getConnect">连接</el-button>
+        </el-row>
+        <el-row style="margin: 0 auto; margin-top: 30px;">
+            <el-col :span="8" :offset="8">
+                <el-card class="box-card" :body-style="{ padding: '30px' }">
+                    <div slot="header" class="clearfix">
+                        <span>发送消息</span>
+                    </div>
+                    <el-form ref="form" :model="form" label-width="80px">
+                        <el-form-item label="接收方id">
+                            <el-input v-model="form.id"></el-input>
+                        </el-form-item>
+                        <el-form-item label="消息内容">
+                            <el-input v-model="form.message"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="sendMeaage">发送</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-card>
+            </el-col>
+        </el-row>
+
+
+    </div>
+</body>
+
+<script>
+    new Vue({
+        el: '#app',
+        data: function () {
+            return {
+                id: '',
+                visible: false,
+                form: {
+                    id: undefined,
+                    message: '',
+                },
+            }
+        },
+        methods: {
+            getConnect: function () {
+                var mynotify = this;
+                var socket;
+                if (typeof (WebSocket) == "undefined") {
+                    console.log("您的浏览器不支持WebSocket");
+                } else {
+
+                    console.log("您的浏览器支持WebSocket");
+                    //实现化WebSocket对象，指定要连接的服务器地址与端口  建立连接  
+                    socket = new WebSocket("ws://localhost:8080/websocket/"+this.id);
+                    // socket = new WebSocket("${basePath}websocket/${cid}".replace("http","ws"));  
+                    //打开事件  
+                    socket.onopen = function () {
+                        console.log("Socket 已打开");
+                        socket.send("这是来自客户端的消息" + location.href + new Date());
+                    };
+                    //获得消息事件  
+                    socket.onmessage = function (msg) {
+                        console.log(msg.data);
+                        mynotify.$notify({
+                            title: '消息',
+                            message: msg.data,
+                            type: 'success'
+                        });
+                        //发现消息进入    开始处理前端触发逻辑
+                    };
+                    //关闭事件  
+                    socket.onclose = function () {
+                        console.log("Socket已关闭");
+                    };
+                    //发生了错误事件  
+                    socket.onerror = function () {
+                        alert("Socket发生了错误");
+                        //此时可以尝试刷新页面
+                    }
+                }
+            },
+
+            sendMeaage: function () {
+                axios.get('http://localhost:8080/api/socket/push/'+this.form.id+'?message='+this.form.message)
+                    .then(function (response) {
+                        console.log(response);
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
+        },
+    })
+</script>
+
+</html>
